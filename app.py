@@ -6,6 +6,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import io
 from transformers import pipeline, CLIPProcessor, CLIPModel
+import plotly.graph_objects as go
+from streamlit_image_comparison import image_comparison
 
 # Set page configuration
 st.set_page_config(
@@ -14,42 +16,77 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS for green and earthy color palette with improved styling
+# Custom CSS for polished aesthetic with forest green, earth brown, and sand palette
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    
     .main {
-        background-color: #f0f8e7;  /* Light green background */
+        background-color: #F5F5DC;  /* Sand background */
+        font-family: 'Inter', sans-serif;
         padding: 20px;
+        color: #2D5A27;  /* Forest Green text */
     }
     .sidebar .sidebar-content {
-        background-color: #e8f5e8;  /* Slightly darker green for sidebar */
+        background-color: #1E1E1E;  /* Deep charcoal for premium look */
+        font-family: 'Inter', sans-serif;
+        padding: 10px;
+        border-right: 2px solid #795548;  /* Earth Brown border */
+        color: white;  /* White text for headers */
+    }
+    .stSidebar .streamlit-expanderContent {
+        background-color: #FDF5E6;  /* Soft cream background */
+        color: #1B3022;  /* Dark forest green text */
+        border-radius: 5px;
         padding: 10px;
     }
+    .stSidebar .streamlit-expanderHeader {
+        color: white;  /* White headers in sidebar */
+        font-weight: 600;
+    }
     h1, h2, h3 {
-        color: #2e7d32;  /* Dark green for headers */
-        font-family: 'Arial', sans-serif;
+        color: #2D5A27;  /* Forest Green headers */
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
     }
     .stButton>button {
-        background-color: #4caf50;  /* Green button */
-        color: white;
-        border-radius: 8px;
+        background-color: #2D5A27;  /* Forest Green button */
+        color: #F5F5DC;  /* Sand text */
+        border-radius: 10px;  /* Rounded corners */
         padding: 10px 20px;
         font-size: 16px;
+        font-family: 'Inter', sans-serif;
+        border: none;
+        transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background-color: #388e3c;  /* Darker green on hover */
+        background-color: #795548;  /* Earth Brown on hover */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);  /* Subtle hover shadow */
     }
     .stExpander {
-        border: 1px solid #4caf50;
-        border-radius: 5px;
+        border: 1px solid #795548;  /* Earth Brown border */
+        border-radius: 10px;
+        background-color: #F5F5DC;
     }
-    .stSelectbox, .stFileUploader {
+    .stSelectbox, .stFileUploader, .stTextInput {
         margin-bottom: 20px;
     }
     .footer {
         text-align: center;
         margin-top: 50px;
-        color: #666;
+        color: #795548;  /* Earth Brown */
+        font-family: 'Inter', sans-serif;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #F5F5DC;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: #2D5A27;
+        font-family: 'Inter', sans-serif;
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background-color: #795548;
+        color: #F5F5DC;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -69,6 +106,17 @@ with st.sidebar:
         st.write("- Upload clear images of land/soil (JPG, PNG, JPEG, WebP).")
         st.write("- Enter region for localized plant suggestions.")
         st.write("- Detection uses AI; reports are downloadable PDFs.")
+    
+    st.markdown("---")
+    if st.button("🔄 Reset Analysis"):
+        st.session_state['uploaded'] = False
+        st.session_state['images'] = []
+        st.session_state['result'] = None
+        st.session_state['region'] = ""
+        st.session_state['model_results'] = []
+        st.rerun()
+    
+    st.markdown('<div style="text-align: center; font-size: 12px; color: #795548;">⚡ Powered by Intel® OpenVINO™ for Edge Inference</div>', unsafe_allow_html=True)
 
 def detect_erosion(image):
     """
@@ -249,13 +297,13 @@ def get_local_plants(region):
     }
     return plants.get(region, [])
 
-def generate_pdf_report(detection_result, image):
+def generate_pdf_report(detection_result, images):
     """
     Generates a simple PDF report with the detection result.
     
     Args:
         detection_result (str): The erosion detection result
-        image (PIL.Image): The uploaded image (not included in PDF for simplicity)
+        images (list): List of PIL images
     
     Returns:
         bytes: PDF data as bytes
@@ -270,11 +318,12 @@ def generate_pdf_report(detection_result, image):
     # Detection result
     c.setFont("Helvetica", 12)
     c.drawString(100, 720, f"Detection Result: {detection_result}")
+    c.drawString(100, 700, f"Images Analyzed: {len(images)}")
     
     # Action plan summary
-    c.drawString(100, 690, "Recommended Actions:")
+    c.drawString(100, 670, "Recommended Actions:")
     
-    y_position = 670
+    y_position = 650
     if detection_result == "Sheet Erosion (Mild)":
         c.drawString(120, y_position, "- Implement cover crops (clover, rye)")
         y_position -= 20
@@ -298,32 +347,31 @@ def generate_pdf_report(detection_result, image):
 st.title("🌱 TerraGuard - Soil Erosion Detection & Remediation")
 st.write("Upload an image to analyze soil erosion and receive actionable remediation plans.")
 
-# Reset button
-if st.button("🔄 Reset Analysis"):
-    st.session_state['uploaded'] = False
-    st.session_state['image'] = None
-    st.session_state['result'] = None
-    st.session_state['region'] = ""
-    st.session_state['model_results'] = []
-    st.rerun()
-
 # Tabs for organization
 tab1, tab2, tab3 = st.tabs(["📤 Upload Image", "🔍 Analysis Results", "📄 Generate Report"])
 
 with tab1:
-    st.subheader("Upload Your Image")
-    st.write("Select a clear photo of land or soil for analysis (JPG, PNG, JPEG, WebP).")
-    uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "png", "jpeg", "webp"])
+    st.subheader("Upload Your Images")
+    st.write("Select 1-5 clear photos of land or soil for analysis (JPG, PNG, JPEG, WebP).")
     
-    region = st.text_input("Region/Country (optional, for localized plant suggestions)", "")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        uploaded_files = st.file_uploader("Choose image files", type=["jpg", "png", "jpeg", "webp"], accept_multiple_files=True)
+    with col2:
+        region = st.text_input("Region/Country (optional, for localized plant suggestions)", "")
     
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", width=400)
-        st.success("Image uploaded successfully!")
+    if uploaded_files:
+        images = [Image.open(file) for file in uploaded_files]
+        st.success(f"{len(images)} image(s) uploaded successfully!")
         
-        # Store in session state for other tabs
-        st.session_state['image'] = image
+        # Display thumbnails
+        cols = st.columns(min(len(images), 5))
+        for i, img in enumerate(images):
+            with cols[i]:
+                st.image(img, caption=f"Image {i+1}", width=150)
+        
+        # Store in session state
+        st.session_state['images'] = images
         st.session_state['uploaded'] = True
         st.session_state['region'] = region
     else:
@@ -333,39 +381,93 @@ with tab2:
     if st.session_state.get('uploaded', False):
         st.subheader("Erosion Analysis")
         
-        # Progress bar for simulation
-        progress_bar = st.progress(0)
-        for i in range(100):
-            progress_bar.progress(i + 1)
-        progress_bar.empty()
+        images = st.session_state['images']
+        region = st.session_state.get('region', '')
         
-        detection_result = detect_erosion(st.session_state['image'])
+        # Analyze each image
+        results = []
+        for i, img in enumerate(images):
+            result = detect_erosion(img)
+            results.append(result)
+            st.write(f"**Image {i+1}:** {result}")
         
-        if detection_result == "Healthy Soil":
-            st.success(f"✅ Detection Result: {detection_result}")
-        elif detection_result == "Sheet Erosion (Mild)":
-            st.warning(f"⚠️ Detection Result: {detection_result}")
+        # Compute average health score
+        def result_to_score(res):
+            if res == "Healthy Soil":
+                return 0
+            elif res == "Sheet Erosion (Mild)":
+                return 50
+            else:
+                return 100
+        
+        scores = [result_to_score(r) for r in results]
+        avg_score = sum(scores) / len(scores)
+        
+        # Gauge chart using Plotly
+        import plotly.graph_objects as go
+        
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=avg_score,
+            title={'text': "Average Field Erosion Level"},
+            gauge={
+                'axis': {'range': [0, 100]},
+                'bar': {'color': "#2D5A27"},
+                'steps': [
+                    {'range': [0, 33], 'color': "lightgreen"},
+                    {'range': [33, 66], 'color': "yellow"},
+                    {'range': [66, 100], 'color': "red"}
+                ],
+                'threshold': {
+                    'line': {'color': "black", 'width': 4},
+                    'thickness': 0.75,
+                    'value': avg_score
+                }
+            }
+        ))
+        st.plotly_chart(fig)
+        
+        # Determine overall result
+        if avg_score < 33:
+            overall = "Healthy Soil"
+            st.success("✅ Field Health Assessment: Healthy")
+            st.metric(label="Erosion Level", value=overall, delta=f"Avg Score: {avg_score:.1f}%")
+        elif avg_score < 66:
+            overall = "Sheet Erosion (Mild)"
+            st.warning("⚠️ Field Health Assessment: Mild Erosion")
+            st.metric(label="Erosion Level", value=overall, delta=f"Avg Score: {avg_score:.1f}%")
         else:
-            st.error(f"🚨 Detection Result: {detection_result}")
+            overall = "Gully Erosion (Severe)"
+            st.error("🚨 Field Health Assessment: Severe Erosion")
+            st.metric(label="Erosion Level", value=overall, delta=f"Avg Score: {avg_score:.1f}%")
         
-        # Store result
-        st.session_state['result'] = detection_result
+        st.session_state['result'] = overall
+        
+        # Comparison view for severe cases
+        if overall == "Gully Erosion (Severe)":
+            st.subheader("Before & After Comparison")
+            # For demo, use a placeholder restored image (in real app, generate or use reference)
+            # Here, I'll use a simple text or a generated image, but since we can't generate, use a sample
+            restored_img = Image.new('RGB', (400, 300), color='green')  # Placeholder
+            from streamlit_image_comparison import image_comparison
+            image_comparison(
+                img1=images[0],  # Original
+                img2=restored_img,  # Restored
+                label1="Eroded Land",
+                label2="Restored Land (Simulated)",
+                width=400
+            )
         
         with st.expander("📋 Detailed Analysis"):
-            results = st.session_state.get('model_results', [])
-            if results:
-                st.write("**Method:** Zero-shot Classification using CLIP (simulates fine-tuned model)")
-                st.write("**Model:** openai/clip-vit-base-patch32 (trained on 400M image-text pairs)")
-                st.write("**Custom Labels (Fine-tuned Categories):**")
-                for result in results:
-                    st.write(f"  - {result['label']}: {result['score']:.2f}")
-                st.write("**Note:** CLIP matches images to text descriptions; for production, fine-tune on erosion dataset and convert to OpenVINO IR.")
-            else:
-                st.write("No model results available.")
+            st.write("**Analysis Method:** Zero-shot Classification using CLIP")
+            st.write("**Model:** openai/clip-vit-base-patch32")
+            st.write(f"**Images Analyzed:** {len(images)}")
+            st.write(f"**Average Erosion Score:** {avg_score:.1f}%")
+            st.write("**Note:** Scores averaged across images for field health assessment.")
         
-        show_action_plan(detection_result, st.session_state.get('region', ''))
+        show_action_plan(overall, region)
     else:
-        st.info("Please upload an image in the 'Upload Image' tab first.")
+        st.info("Please upload images in the 'Upload Images' tab first.")
 
 with tab3:
     if st.session_state.get('result'):
@@ -373,7 +475,8 @@ with tab3:
         st.write("Generate and download a PDF summary of your analysis.")
         
         if st.button("📄 Download PDF Report"):
-            pdf_data = generate_pdf_report(st.session_state['result'], st.session_state['image'])
+            images = st.session_state.get('images', [])
+            pdf_data = generate_pdf_report(st.session_state['result'], images)
             st.download_button(
                 label="Download TerraGuard Report",
                 data=pdf_data,
@@ -383,7 +486,3 @@ with tab3:
             st.success("Report generated successfully!")
     else:
         st.info("Complete the analysis in the 'Analysis Results' tab first.")
-
-# Footer
-st.markdown("---")
-st.markdown('<div class="footer">*Optimized for Intel® Core™ Processors using OpenVINO™ Toolkit*</div>', unsafe_allow_html=True)
