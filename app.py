@@ -11,40 +11,57 @@ from streamlit_image_comparison import image_comparison
 st.markdown(
     """
     <style>
-    /* 1. Fix the Expander Headers */
+    /* 1. FORCE DARK EXPANDERS (Headers and Content) */
+    div[data-testid="stExpander"] {
+        background-color: #1E1E1E !important;
+        border: 1px solid #333 !important;
+        border-radius: 0.5rem;
+    }
+    
     div[data-testid="stExpander"] details summary {
         background-color: #1E1E1E !important;
         color: white !important;
     }
 
-    /* 2. Fix the Expander Body (the cream part) */
     div[data-testid="stExpander"] div[role="region"] {
         background-color: #1E1E1E !important;
         color: #FAFAFA !important;
-        border: 1px solid #333;
     }
 
-    /* 3. Change the Tabs Bar color */
+    /* 2. FORCE DARK TABS BAR */
     div[data-testid="stTabs"] {
-        background-color: #1E1E1E !important;
-        padding: 10px;
-        border-radius: 10px;
+        background-color: transparent !important;
     }
 
-    /* 4. Style the individual tab text */
-    button[data-baseweb="tab"] p {
+    /* Target the list container of the tabs */
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        background-color: #1E1E1E !important;
+        border-radius: 10px 10px 0 0;
+        padding: 5px;
+    }
+
+    /* 3. FIX TAB TEXT COLOR (Active and Inactive) */
+    div[data-testid="stTabs"] [data-baseweb="tab"] {
+        background-color: transparent !important;
+    }
+
+    /* This forces the text color for ALL tabs to be white/off-white */
+    div[data-testid="stTabs"] [data-baseweb="tab"] p {
         color: #FAFAFA !important;
+        font-weight: 600 !important;
+    }
+
+    /* 4. REMOVE THE CREAM BACKGROUND FROM THE TAB CONTENT AREA */
+    div[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+        background-color: #1E1E1E !important;
+        color: white !important;
+        padding: 20px;
+        border-radius: 0 0 10px 10px;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
-
-# 2. THEN YOUR APP CONTENT
-st.title("TerraGuard - Soil Erosion Detection")
-with st.sidebar:
-    with st.expander("ℹ️ Project Details"):
-        st.write("Tech Stack: Python, Streamlit...")
 
 # Set page configuration
 st.set_page_config(
