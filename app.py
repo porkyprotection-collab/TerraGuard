@@ -11,9 +11,29 @@ from streamlit_image_comparison import image_comparison
 st.markdown(
     """
     <style>
+    /* 1. Fix the Expander Headers */
     div[data-testid="stExpander"] details summary {
-        background-color: #0E1117; /* Matches the dark background */
-        color: #FAFAFA;
+        background-color: #1E1E1E !important;
+        color: white !important;
+    }
+
+    /* 2. Fix the Expander Body (the cream part) */
+    div[data-testid="stExpander"] div[role="region"] {
+        background-color: #1E1E1E !important;
+        color: #FAFAFA !important;
+        border: 1px solid #333;
+    }
+
+    /* 3. Change the Tabs Bar color */
+    div[data-testid="stTabs"] {
+        background-color: #1E1E1E !important;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    /* 4. Style the individual tab text */
+    button[data-baseweb="tab"] p {
+        color: #FAFAFA !important;
     }
     </style>
     """,
