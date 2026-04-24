@@ -8,6 +8,24 @@ from transformers import pipeline, CLIPProcessor, CLIPModel
 import plotly.graph_objects as go
 from streamlit_image_comparison import image_comparison
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stExpander"] details summary {
+        background-color: #0E1117; /* Matches the dark background */
+        color: #FAFAFA;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# 2. THEN YOUR APP CONTENT
+st.title("TerraGuard - Soil Erosion Detection")
+with st.sidebar:
+    with st.expander("ℹ️ Project Details"):
+        st.write("Tech Stack: Python, Streamlit...")
+
 # Set page configuration
 st.set_page_config(
     page_title="TerraGuard",
