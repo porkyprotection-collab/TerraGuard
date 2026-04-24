@@ -40,8 +40,11 @@ st.markdown("""
         padding: 10px;
     }
     .stSidebar .streamlit-expanderHeader {
-        color: white;  /* White headers in sidebar */
+        background-color: #2D5A27;  /* Forest green header background */
+        color: #F5F5DC;  /* Sand text for contrast */
         font-weight: 600;
+        border-radius: 5px 5px 0 0;
+        padding: 8px 10px;
     }
     h1, h2, h3 {
         color: #2D5A27;  /* Forest Green headers */
